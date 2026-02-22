@@ -461,7 +461,7 @@ func ingressPath(instance *v1beta1.Notebook) string {
 	return fmt.Sprintf("/notebook/%s/%s/", instance.Namespace, instance.Name)
 }
 
-func virtualServiceName(kfName string, namespace string) string {
+func routeServiceName(kfName string, namespace string) string {
 	return fmt.Sprintf("notebook-%s-%s", namespace, kfName)
 }
 
@@ -491,7 +491,7 @@ func generateVirtualService(instance *v1beta1.Notebook) (*unstructured.Unstructu
 	vsvc := &unstructured.Unstructured{}
 	vsvc.SetAPIVersion("networking.istio.io/v1alpha3")
 	vsvc.SetKind("VirtualService")
-	vsvc.SetName(virtualServiceName(name, namespace))
+	vsvc.SetName(routeServiceName(name, namespace))
 	vsvc.SetNamespace(namespace)
 
 	istioHost := os.Getenv("ISTIO_HOST")
@@ -599,7 +599,7 @@ func generateHTTPRoute(instance *v1beta1.Notebook) *gwapiv1beta1.HTTPRoute {
 
 	httpRoute := &gwapiv1beta1.HTTPRoute{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      virtualServiceName(name, namespace),
+			Name:      routeServiceName(name, namespace),
 			Namespace: namespace,
 		},
 		Spec: gwapiv1beta1.HTTPRouteSpec{
@@ -659,11 +659,11 @@ func (r *NotebookReconciler) reconcileHTTPRoute(instance *v1beta1.Notebook) erro
 	// Check if the HTTPRoute already exists.
 	foundHTTPRoute := &gwapiv1beta1.HTTPRoute{}
 	justCreated := false
-	err := r.Get(context.TODO(), types.NamespacedName{Name: virtualServiceName(instance.Name,
+	err := r.Get(context.TODO(), types.NamespacedName{Name: routeServiceName(instance.Name,
 		instance.Namespace), Namespace: instance.Namespace}, foundHTTPRoute)
 	if err != nil && apierrs.IsNotFound(err) {
 		log.Info("Creating HTTPRoute", "namespace", instance.Namespace, "name",
-			virtualServiceName(instance.Name, instance.Namespace))
+			routeServiceName(instance.Name, instance.Namespace))
 		err = r.Create(context.TODO(), httpRoute)
 		justCreated = true
 		if err != nil {
@@ -677,7 +677,7 @@ func (r *NotebookReconciler) reconcileHTTPRoute(instance *v1beta1.Notebook) erro
 		// Copy the spec from the desired HTTPRoute to the existing one
 		if !reflect.DeepEqual(httpRoute.Spec, foundHTTPRoute.Spec) {
 			log.Info("Updating HTTPRoute", "namespace", instance.Namespace, "name",
-				virtualServiceName(instance.Name, instance.Namespace))
+				routeServiceName(instance.Name, instance.Namespace))
 			foundHTTPRoute.Spec = httpRoute.Spec
 			err = r.Update(context.TODO(), foundHTTPRoute)
 			if err != nil {
@@ -704,11 +704,11 @@ func (r *NotebookReconciler) reconcileVirtualService(instance *v1beta1.Notebook)
 	justCreated := false
 	foundVirtual.SetAPIVersion("networking.istio.io/v1alpha3")
 	foundVirtual.SetKind("VirtualService")
-	err = r.Get(context.TODO(), types.NamespacedName{Name: virtualServiceName(instance.Name,
+	err = r.Get(context.TODO(), types.NamespacedName{Name: routeServiceName(instance.Name,
 		instance.Namespace), Namespace: instance.Namespace}, foundVirtual)
 	if err != nil && apierrs.IsNotFound(err) {
 		log.Info("Creating virtual service", "namespace", instance.Namespace, "name",
-			virtualServiceName(instance.Name, instance.Namespace))
+			routeServiceName(instance.Name, instance.Namespace))
 		err = r.Create(context.TODO(), virtualService)
 		justCreated = true
 		if err != nil {
@@ -720,7 +720,7 @@ func (r *NotebookReconciler) reconcileVirtualService(instance *v1beta1.Notebook)
 
 	if !justCreated && reconcilehelper.CopyVirtualService(virtualService, foundVirtual) {
 		log.Info("Updating virtual service", "namespace", instance.Namespace, "name",
-			virtualServiceName(instance.Name, instance.Namespace))
+			routeServiceName(instance.Name, instance.Namespace))
 		err = r.Update(context.TODO(), foundVirtual)
 		if err != nil {
 			return err

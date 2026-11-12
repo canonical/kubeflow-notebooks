@@ -68,6 +68,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -v ./... -coverprofile cover.out
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -v ./controllers/... -coverprofile cover.out
 
+
 .PHONY: manager
 manager: generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
@@ -100,7 +101,7 @@ docker-build-multi-arch: ##  Build multi-arch docker images with docker buildx
 	cd .. && docker buildx build --load --platform ${ARCH} --tag ${IMG}:${TAG} -f ./notebook-controller/Dockerfile .
 
 .PHONY: docker-build-push-multi-arch
-docker-build-push-multi-arch: ## Build multi-arch docker images with docker buildx and push to docker registry 
+docker-build-push-multi-arch: ## Build multi-arch docker images with docker buildx and push to docker registry
 	cd .. && docker buildx build --platform ${ARCH} --tag ${IMG}:${TAG} --push -f ./notebook-controller/Dockerfile .
 
 ##@ Deployment
